@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -21,6 +22,10 @@ type Board struct {
 	squares [][]rune
 }
 
+func NewBoard(height, width int, squares [][]rune) *Board {
+	return &Board{height: height, width: width, squares: squares}
+}
+
 func (br *Board) String() string {
 	var b strings.Builder
 	for _, r := range br.squares {
@@ -31,10 +36,15 @@ func (br *Board) String() string {
 	return b.String()
 }
 
-func NewBoard(height, width int, black, white rune) *Board {
+func usage() {
+	fmt.Fprintf(os.Stdout, "%s: print chessboard\n", os.Args[0])
+	fmt.Fprintf(os.Stdout, "usage: %s <height> <width>", os.Args[0])
+}
+
+func WriteBoard(w io.Writer, height, width int, blackSymbol, whiteSymbol rune) {
 	squares := make([][]rune, height)
 	var c, cc, n, nc rune
-	c, n = black, white
+	c, n = blackSymbol, whiteSymbol
 	for i := range squares {
 		c, cc, n, nc = n, n, c, c
 		squares[i] = make([]rune, width)
@@ -44,25 +54,33 @@ func NewBoard(height, width int, black, white rune) *Board {
 		}
 	}
 
-	return &Board{height: height, width: width, squares: squares}
+	board := NewBoard(height, width, squares)
+	fmt.Fprint(w, board)
 }
 
-func usage() {
-	fmt.Fprintf(os.Stdout, "%s: print chessboard\n", os.Args[0])
-	fmt.Fprintf(os.Stdout, "usage: %s <height> <width>", os.Args[0])
+func ParseParams(args []string) (height, width int, err error) {
+	height, err = strconv.Atoi(args[1])
+	if err != nil || height <= 0 {
+		err = fmt.Errorf("height: %w", ErrSize)
+
+		return
+	}
+	width, err = strconv.Atoi(args[2])
+	if err != nil || width <= 0 {
+		err = fmt.Errorf("width: %w", ErrSize)
+
+		return
+	}
+
+	return height, width, nil
 }
 
 func Task(args []string) error {
-	height, err := strconv.Atoi(args[1])
-	if err != nil || height <= 0 {
-		return fmt.Errorf("height: %w", ErrSize)
+	height, width, err := ParseParams(args)
+	if err != nil {
+		return fmt.Errorf("parsing parameters:%w", err)
 	}
-	width, err := strconv.Atoi(args[2])
-	if err != nil || width <= 0 {
-		return fmt.Errorf("width: %w", ErrSize)
-	}
-	board := NewBoard(height, width, blackSymbol, whiteSymbol)
-	fmt.Print(board)
+	WriteBoard(os.Stdout, height, width, blackSymbol, whiteSymbol)
 
 	return nil
 }
