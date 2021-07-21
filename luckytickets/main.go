@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"strconv"
@@ -13,128 +14,132 @@ import (
 var (
 	ticketLength = 6
 
-	ErrNegativeNumber = errors.New("number is negative")
-	ErrTicketLength   = errors.New("unexpected ticket length")
-	ErrCountMethod    = errors.New("unknown count method")
+	// ErrCountMethod indicates that program called with unknown count method.
+	ErrCountMethod = errors.New("unknown count method")
 )
 
-func getTicketNumber(number string, tl int) (int, error) {
-	n, err := strconv.Atoi(number)
-	if err != nil {
-		return 0, strconv.ErrSyntax
+func countDigits(n int) int {
+	count := 0
+	for n != 0 {
+		n, count = n/10, count+1
 	}
-	if len(number) != tl {
-		return 0, fmt.Errorf("number is't %d digit long:%w", tl, ErrTicketLength)
-	}
-
-	if n < 0 {
-		return 0, ErrNegativeNumber
-	}
-
-	return n, nil
+	return count
 }
 
 func isMoskowLucky(n int) bool {
-	l, r := 0, 0
-	for i := 0; i < ticketLength/2; i++ {
-		l += n / int(math.Pow10(ticketLength-1-i)) % 10
+	l, r, dc := 0, 0, countDigits(n)
+	for i := 0; i < dc/2; i++ {
+		l += n / int(math.Pow10(dc-1-i)) % 10
 		r += n / int(math.Pow10(i)) % 10
 	}
-
 	return l == r
 }
 
 func isPiterLucky(n int) bool {
-	var o, e, d int
-	for i := 0; i < ticketLength; i++ {
+	o, e, d, dc := 0, 0, 0, countDigits(n)
+	for i := 0; i < dc; i++ {
 		d = n / int(math.Pow10(i)) % 10
 		if d%2 == 0 {
 			e += d
-
 			continue
 		}
 		o += d
 	}
-
 	return o == e
 }
 
-func countLuckyNumbers(min, max int, isLucky func(int) bool) int {
+func countNumbers(min, max int, countMethod string) (int, error) {
+	switch countMethod {
+	case "Moskow":
+		return countLucky(min, max, isMoskowLucky), nil
+	case "Piter":
+		return countLucky(min, max, isPiterLucky), nil
+	default:
+		return 0, ErrCountMethod
+	}
+}
+
+func countLucky(min, max int, isLucky func(int) bool) int {
 	luckyCounter := 0
 	for i := min; i <= max; i++ {
 		if isLucky(i) {
 			luckyCounter++
 		}
 	}
-
 	return luckyCounter
 }
 
-func getCountingMethod(filename string) (string, error) {
-	data, err := os.ReadFile(filename)
+func readTicketNumber(r io.Reader) (int, error) {
+	line, err := readLine(r)
+	if err != nil {
+		return 0, err
+	}
+	n, err := strconv.Atoi(line)
+	if err != nil || n < 0 || len(line) != ticketLength {
+		return 0, strconv.ErrSyntax
+	}
+	return n, nil
+}
+
+func readCountingMethod(r io.Reader) (string, error) {
+	line, err := readLine(r)
+	if err != nil {
+		return "", fmt.Errorf("read filename: %w", err)
+	}
+	data, err := os.ReadFile(line)
 	if err != nil {
 		return "", fmt.Errorf("read config: %w", err)
 	}
-
 	return strings.TrimSpace(string(data)), err
 }
 
-func getCountFunc(countMethod string) (func(int) bool, error) {
-	switch countMethod {
-	case "Moskow":
-		return isMoskowLucky, nil
-	case "Piter":
-		return isPiterLucky, nil
-	default:
-		return nil, ErrCountMethod
+func readLine(r io.Reader) (string, error) {
+	br := bufio.NewReader(r)
+	line, err := br.ReadString('\n')
+	if err != nil {
+		return "", err
 	}
+	return strings.TrimSuffix(line, "\n"), nil
 }
 
-func Task() (err error) {
-	var min, max int
-	var countMethod string
-	var countFunc func(int) bool
-	scanner := bufio.NewScanner(os.Stdin)
+// Task count lucky tickets from to number from reader
+// with method in file.
+func Task(r io.Reader, w io.Writer) error {
+	fmt.Fprint(w, "Enter config filename: ")
+	method, err := readCountingMethod(r)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(w, "count method: %s\n", method)
 
-	fmt.Print("Enter config filename: ")
-	if scanner.Scan() {
-		if countMethod, err = getCountingMethod(scanner.Text()); err != nil {
-			return err
-		}
-		if countFunc, err = getCountFunc(countMethod); err != nil {
-			return err
-		}
-		fmt.Printf("count method: %s\n", countMethod)
+	fmt.Fprint(w, "Min: ")
+	min, err := readTicketNumber(r)
+	if err != nil {
+		return err
 	}
 
-	fmt.Print("Min: ")
-	if scanner.Scan() {
-		if min, err = getTicketNumber(scanner.Text(), ticketLength); err != nil {
-			return err
-		}
+	fmt.Fprint(w, "Max: ")
+	max, err := readTicketNumber(r)
+	if err != nil {
+		return err
 	}
 
-	fmt.Print("Max: ")
-	if scanner.Scan() {
-		if max, err = getTicketNumber(scanner.Text(), ticketLength); err != nil {
-			return err
-		}
+	fmt.Fprintln(w, "--Result--")
+	c, err := countNumbers(min, max, method)
+	if err != nil {
+		return err
 	}
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("task scanner:%w", err)
-	}
-	fmt.Printf("\n--Result--\n %d\n", countLuckyNumbers(min, max, countFunc))
-
+	fmt.Fprint(w, c)
 	return nil
 }
 
-func usage() {
-	fmt.Fprintf(os.Stdout, "%s: counting lucky numbers\n", os.Args[0])
+func usage(w io.Writer) {
+	fmt.Fprintf(w, "%s: counting lucky numbers\n", os.Args[0])
 }
 
 func main() {
-	usage()
-	if err := Task(); err != nil {
+	usage(os.Stdout)
+	if err := Task(os.Stdin, os.Stdout); err != nil {
 		fmt.Println(err)
 		os.Exit(0)
 	}
