@@ -10,22 +10,36 @@ import (
 )
 
 var (
-	blackSymbol = '*'
-	whiteSymbol = ' '
+	// BlackSymbol represent black square symbol
+	BlackSymbol = '*'
+	// WhiteSymbol represent white square symbol
+	WhiteSymbol = ' '
 
+	// ErrParameters indicates that program called with wrong number of parameters
+	ErrParameters = errors.New("parameter length should be 2 <height> <width>")
+	// ErrSize indicates that a value does not have the right syntax for the size type.
 	ErrSize = errors.New("size should be a positive integer")
 )
 
+// Board represent chess board as rune matrix.
 type Board struct {
 	height  int
 	width   int
 	squares [][]rune
 }
 
-func NewBoard(height, width int, squares [][]rune) *Board {
-	return &Board{height: height, width: width, squares: squares}
+// NewBoard creates new board with height and width sizes and black and witer symbols.
+func NewBoard(height, width int, blackSymbol, whiteSymbol rune) (*Board, error) {
+	if height <= 0 || width <= 0 {
+		return nil, ErrSize
+	}
+
+	squares := createSquares(height, width, blackSymbol, whiteSymbol)
+
+	return &Board{height: height, width: width, squares: squares}, nil
 }
 
+// String return string representation of board.
 func (br *Board) String() string {
 	var b strings.Builder
 	for _, r := range br.squares {
@@ -36,12 +50,7 @@ func (br *Board) String() string {
 	return b.String()
 }
 
-func usage() {
-	fmt.Fprintf(os.Stdout, "%s: print chessboard\n", os.Args[0])
-	fmt.Fprintf(os.Stdout, "usage: %s <height> <width>", os.Args[0])
-}
-
-func WriteBoard(w io.Writer, height, width int, blackSymbol, whiteSymbol rune) {
+func createSquares(height, width int, blackSymbol, whiteSymbol rune) [][]rune {
 	squares := make([][]rune, height)
 	var c, cc, n, nc rune
 	c, n = blackSymbol, whiteSymbol
@@ -54,43 +63,47 @@ func WriteBoard(w io.Writer, height, width int, blackSymbol, whiteSymbol rune) {
 		}
 	}
 
-	board := NewBoard(height, width, squares)
-	fmt.Fprint(w, board)
+	return squares
 }
 
-func ParseParams(args []string) (height, width int, err error) {
-	height, err = strconv.Atoi(args[1])
+func createBoard(parameters []string, blackSymbol, whiteSymbol rune) (*Board, error) {
+	if len(parameters) != 2 {
+		return nil, ErrParameters
+	}
+
+	height, err := strconv.Atoi(parameters[0])
 	if err != nil || height <= 0 {
-		err = fmt.Errorf("height: %w", ErrSize)
-
-		return
+		return nil, fmt.Errorf("height: %w", ErrSize)
 	}
-	width, err = strconv.Atoi(args[2])
+
+	width, err := strconv.Atoi(parameters[1])
 	if err != nil || width <= 0 {
-		err = fmt.Errorf("width: %w", ErrSize)
-
-		return
+		return nil, fmt.Errorf("width: %w", ErrSize)
 	}
 
-	return height, width, nil
+	return NewBoard(height, width, blackSymbol, whiteSymbol)
 }
 
-func Task(args []string) error {
-	height, width, err := ParseParams(args)
+// Task write string of board with args params.
+func Task(w io.Writer, args []string) error {
+	board, err := createBoard(args, BlackSymbol, WhiteSymbol)
 	if err != nil {
-		return fmt.Errorf("parsing parameters:%w", err)
+		return fmt.Errorf("creating board:%w", err)
 	}
-	WriteBoard(os.Stdout, height, width, blackSymbol, whiteSymbol)
-
+	fmt.Fprint(w, board)
 	return nil
 }
 
+func usage(w io.Writer) {
+	fmt.Fprintf(w, "%s: print chessboard\n", os.Args[0])
+	fmt.Fprintf(w, "usage: %s <height> <width>", os.Args[0])
+}
+
 func main() {
-	if len(os.Args) != 3 {
-		usage()
-		os.Exit(0)
-	}
-	if err := Task(os.Args); err != nil {
+	if err := Task(os.Stdout, os.Args[1:]); err != nil {
+		if errors.Is(err, ErrParameters) {
+			usage(os.Stdout)
+		}
 		fmt.Println(err)
 		os.Exit(0)
 	}
