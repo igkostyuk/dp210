@@ -1,58 +1,19 @@
-linters-settings:
-  govet:
-    check-shadowing: true
-  golint:
-    min-confidence: 0
-  gocyclo:
-    min-complexity: 10
-  maligned:
-    suggest-new: true
-  dupl:
-    threshold: 100
-  goconst:
-    min-len: 2
-    min-occurrences: 2
-  misspell:
-    locale: US
-  lll:
-    line-length: 120
-  gocritic:
-    enabled-tags:
-      - performance
-      - style
-      - experimental
-    disabled-checks:
-      - hugeParam
-      - wrapperFunc
-      - dupImport # https://github.com/go-critic/go-critic/issues/845
-      - whyNoLint
-
-linters:
-  enable-all: true
-  disable:
-    - forbidigo
-    - dupl
-    - goerr113
-    - maligned
-    - gochecknoglobals
-    - goimports
-    - gomnd
-    - wsl
-    - godox
+# Refer to golangci-lint's example config file for more options and information:
+# https://github.com/golangci/golangci-lint/blob/master/.golangci.example.yml
 
 run:
-  skip-dirs:
-    - vendor
+  timeout: 5m
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck
+    - goimports
+    - revive
+    - govet
+    - staticcheck
 
 issues:
-  exclude:
-     - Using the variable on range scope `tc` in function literal
-  exclude-rules:
-    - text: "weak cryptographic primitive"
-      linters:
-        - gosec
-
-service:
-  golangci-lint-version: 1.26.x
-  prepare:
-    - echo "here I can run custom commands, but no preparation needed for this repo"
+  exclude-use-default: false
+  max-issues-per-linter: 0
+  max-same-issues: 0
