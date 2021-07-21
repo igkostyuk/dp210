@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
@@ -9,43 +10,55 @@ import (
 	"strconv"
 )
 
-var ErrNumberSyntax = errors.New("number should be positive float")
+var (
+	// ErrNumberSyntax indicates that a value does not have the right syntax for the size type.
+	ErrNumberSyntax = errors.New("number should be positive float")
+	// ErrParameters indicates that program called with wrong number of parameters
+	ErrParameters = errors.New("parameter length should be 1 <number>")
+)
 
-func usage() {
+// WriteSequence write natural numbers separated by commas,
+// the square of which is less than a given n.
+func WriteSequence(w io.Writer, n float64) error {
+	bw := bufio.NewWriter(w)
+	s := math.Sqrt(n)
+	number := int(s)
+	if s-math.Trunc(s) > 0 {
+		number++
+	}
+	if number != 0 {
+		fmt.Fprint(bw, 0)
+	}
+	for i := 1; i < number; i++ {
+		fmt.Fprint(bw, ",", i)
+	}
+	return bw.Flush()
+}
+
+// Task write natural numbers separated by commas,
+// the square of which is less than main param.
+func Task(w io.Writer, args []string) error {
+	if len(args) != 1 {
+		return ErrParameters
+	}
+	n, err := strconv.ParseFloat(args[0], 64)
+	if err != nil || n < 0 {
+		return ErrNumberSyntax
+	}
+	return WriteSequence(w, n)
+}
+
+func usage(w io.Writer) {
 	fmt.Fprintf(os.Stdout, "%s: print numeric sequence till square number\n", os.Args[0])
 	fmt.Fprintf(os.Stdout, "usage: %s <number>", os.Args[0])
 }
 
-func WriteSequence(w io.Writer, n float64) {
-	n = math.Sqrt(n)
-	number := int(n)
-	if n-math.Trunc(n) > 0 {
-		number++
-	}
-	if number != 0 {
-		fmt.Fprint(w, 0)
-	}
-	for i := 1; i < number; i++ {
-		fmt.Fprint(w, ",", i)
-	}
-}
-
-func Task() error {
-	n, err := strconv.ParseFloat(os.Args[1], 64)
-	if err != nil || n < 0 {
-		return ErrNumberSyntax
-	}
-	WriteSequence(os.Stdout, n)
-
-	return nil
-}
-
 func main() {
-	if len(os.Args) != 2 {
-		usage()
-		os.Exit(0)
-	}
-	if err := Task(); err != nil {
+	if err := Task(os.Stdout, os.Args[1:]); err != nil {
+		if errors.Is(err, ErrParameters) {
+			usage(os.Stdout)
+			os.Exit(0)
+		}
 		fmt.Println(err)
 		os.Exit(0)
 	}
