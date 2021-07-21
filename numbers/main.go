@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -60,7 +61,12 @@ var periodDictionary = [][]string{
 	{"квинтиллион", "квинтиллиона", "квинтиллионов"},
 }
 
-var ErrNumbersDictionary = errors.New("missing in numbers dictionary")
+var (
+	// ErrNumbersDictionary indicates that a number missing in dictionary.
+	ErrNumbersDictionary = errors.New("missing in numbers dictionary")
+	// ErrParameters indicates that program called with wrong number of parameters
+	ErrParameters = errors.New("parameter length should be 1 <number>")
+)
 
 func getTripletName(n int, dictionary map[int]string) (string, error) {
 	words := make([]string, 0, 3)
@@ -127,9 +133,6 @@ func getNumberName(number string, nd map[int]string, pd [][]string) (string, err
 		n *= -1
 	}
 	triplets := parseTriplets(n)
-	if err != nil {
-		return "", fmt.Errorf("parsing triplets:%w", err)
-	}
 	for i := len(triplets) - 1; i > 0; i-- {
 		tripletName, err := getTripletName(triplets[i], nd)
 		if err != nil {
@@ -139,8 +142,8 @@ func getNumberName(number string, nd map[int]string, pd [][]string) (string, err
 			if strings.HasSuffix(tripletName, "ин") {
 				tripletName = strings.TrimSuffix(tripletName, "ин") + "на"
 			}
-			if strings.Contains(tripletName, "два") && !strings.Contains(tripletName, "двадцать") {
-				tripletName = strings.Replace(tripletName, "два", "две", 1)
+			if strings.HasSuffix(tripletName, "ва") {
+				tripletName = strings.Replace(tripletName, "ва", "ве", 1)
 			}
 		}
 		words = append(words, tripletName, pd[i-1][getPluralIndex(triplets[i])])
@@ -151,15 +154,20 @@ func getNumberName(number string, nd map[int]string, pd [][]string) (string, err
 	}
 	words = append(words, tripletName)
 
-	return strings.Join(words, " "), nil
+	return strings.TrimSpace(strings.Join(words, " ")), nil
 }
 
-func Task() error {
-	numberName, err := getNumberName(os.Args[1], numbersDictionary, periodDictionary)
+// Task spell params number in words.
+func Task(w io.Writer, args []string) error {
+	// ErrSize indicates that a value does not have the right syntax for the size type.
+	if len(args) != 1 {
+		return ErrParameters
+	}
+	numberName, err := getNumberName(args[0], numbersDictionary, periodDictionary)
 	if err != nil {
 		return err
 	}
-	fmt.Printf("%s - %s\n", os.Args[1], numberName)
+	fmt.Fprintf(w, "%s - %s\n", args[0], numberName)
 
 	return nil
 }
@@ -180,17 +188,17 @@ func getPluralIndex(n int) int {
 	return 2
 }
 
-func usage() {
-	fmt.Fprintf(os.Stdout, "%s: print number name\n", os.Args[0])
-	fmt.Fprintf(os.Stdout, "usage: %s <number>", os.Args[0])
+func usage(w io.Writer) {
+	fmt.Fprintf(w, "%s: print number name\n", os.Args[0])
+	fmt.Fprintf(w, "usage: %s <number>", os.Args[0])
 }
 
 func main() {
-	if len(os.Args) != 2 {
-		usage()
-		os.Exit(0)
-	}
-	if err := Task(); err != nil {
+	if err := Task(os.Stdout, os.Args[1:]); err != nil {
+		if errors.Is(err, ErrParameters) {
+			usage(os.Stdout)
+			os.Exit(0)
+		}
 		fmt.Println(err)
 		os.Exit(0)
 	}
