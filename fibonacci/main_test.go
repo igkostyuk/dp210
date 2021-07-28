@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"os"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestWriteFibonacciSequence(t *testing.T) {
@@ -12,25 +14,32 @@ func TestWriteFibonacciSequence(t *testing.T) {
 		to   int
 	}
 	tests := []struct {
-		name    string
-		args    args
-		wantW   string
-		wantErr bool
+		name      string
+		args      args
+		wantW     string
+		assertion assert.ErrorAssertionFunc
 	}{
-		{"first 19", args{0, 2600}, "0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584", false},
-		{"first reverse params 19", args{2600, 0}, "0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584", false},
-		{"first 4-19", args{2, 2600}, "2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584", false},
+		{
+			"first 19",
+			args{0, 2600}, "0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584",
+			assert.NoError,
+		},
+		{
+			"first reverse params 19",
+			args{2600, 0}, "0,1,1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584",
+			assert.NoError,
+		},
+		{
+			"first 4-19",
+			args{2, 2600}, "2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584",
+			assert.NoError,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &bytes.Buffer{}
-			if err := WriteFibonacciSequence(w, tt.args.from, tt.args.to); (err != nil) != tt.wantErr {
-				t.Errorf("WriteFibonacciSequence() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if gotW := w.String(); gotW != tt.wantW {
-				t.Errorf("WriteFibonacciSequence() = %v, want %v", gotW, tt.wantW)
-			}
+			tt.assertion(t, WriteFibonacciSequence(w, tt.args.from, tt.args.to))
+			assert.Equal(t, tt.wantW, w.String())
 		})
 	}
 }
@@ -40,26 +49,33 @@ func TestTask(t *testing.T) {
 		args []string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		wantW   string
-		wantErr bool
+		name      string
+		args      args
+		wantW     string
+		assertion assert.ErrorAssertionFunc
 	}{
-		{"valid parameters", args{[]string{"0", "2"}}, "0,1,1", false},
-		{"invalid first parameters", args{[]string{"invalid", "2"}}, "", true},
-		{"invalid second parameters", args{[]string{"2", "invalid"}}, "", true},
-		{"invalid parameters lenght", args{[]string{"2", "3", "4"}}, "", true},
+		{
+			"valid parameters",
+			args{[]string{"0", "2"}}, "0,1,1", assert.NoError,
+		},
+		{
+			"invalid first parameters",
+			args{[]string{"invalid", "2"}}, "", assert.Error,
+		},
+		{
+			"invalid second parameters",
+			args{[]string{"2", "invalid"}}, "", assert.Error,
+		},
+		{
+			"invalid parameters length",
+			args{[]string{"2", "3", "4"}}, "", assert.Error,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &bytes.Buffer{}
-			if err := Task(w, tt.args.args); (err != nil) != tt.wantErr {
-				t.Errorf("Task() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if gotW := w.String(); gotW != tt.wantW {
-				t.Errorf("Task() = %v, want %v", gotW, tt.wantW)
-			}
+			tt.assertion(t, Task(w, tt.args.args))
+			assert.Equal(t, tt.wantW, w.String())
 		})
 	}
 }
@@ -78,10 +94,7 @@ func Test_usage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &bytes.Buffer{}
 			usage(w)
-			if gotW := w.String(); gotW != tt.wantW {
-				t.Errorf("Task() = %v, want %v", gotW, tt.wantW)
-			}
-
+			assert.Equal(t, tt.wantW, w.String())
 		})
 	}
 }
@@ -90,7 +103,7 @@ func Test_main(t *testing.T) {
 	tests := []struct {
 		name string
 	}{
-		// TODO: Add test cases.
+		{"main no panic"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

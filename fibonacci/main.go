@@ -78,9 +78,7 @@ func main() {
 	if err := Task(os.Stdout, os.Args[1:]); err != nil {
 		if errors.Is(err, ErrParameters) {
 			usage(os.Stdout)
-			os.Exit(0)
 		}
 		fmt.Println(err)
-		os.Exit(0)
 	}
 }
