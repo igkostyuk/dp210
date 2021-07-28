@@ -20,16 +20,13 @@ var (
 // WriteSequence write natural numbers separated by commas,
 // the square of which is less than a given n.
 func WriteSequence(w io.Writer, n float64) error {
+	if n < 0 {
+		return fmt.Errorf("write sequence:%w", ErrNumberSyntax)
+	}
 	bw := bufio.NewWriter(w)
 	s := math.Sqrt(n)
-	number := int(s)
-	if s-math.Trunc(s) > 0 {
-		number++
-	}
-	if number != 0 {
-		fmt.Fprint(bw, 0)
-	}
-	for i := 1; i < number; i++ {
+	fmt.Fprint(bw, 0)
+	for i := 1.0; i < s; i++ {
 		fmt.Fprint(bw, ",", i)
 	}
 	return bw.Flush()
@@ -43,7 +40,7 @@ func Task(w io.Writer, args []string) error {
 	}
 	n, err := strconv.ParseFloat(args[0], 64)
 	if err != nil || n < 0 {
-		return ErrNumberSyntax
+		return fmt.Errorf("parsing:%w", ErrNumberSyntax)
 	}
 	return WriteSequence(w, n)
 }

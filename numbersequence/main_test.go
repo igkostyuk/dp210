@@ -21,6 +21,7 @@ func TestWriteSequence(t *testing.T) {
 	}{
 		{"10", args{10}, "0,1,2,3", assert.NoError},
 		{"25", args{25}, "0,1,2,3,4", assert.NoError},
+		{"negative number", args{-25}, "", assert.Error},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
