@@ -49,17 +49,15 @@ func Task(w io.Writer, args []string) error {
 }
 
 func usage(w io.Writer) {
-	fmt.Fprintf(os.Stdout, "%s: print numeric sequence till square number\n", os.Args[0])
-	fmt.Fprintf(os.Stdout, "usage: %s <number>", os.Args[0])
+	fmt.Fprintf(w, "%s: print numeric sequence till square number\n", os.Args[0])
+	fmt.Fprintf(w, "usage: %s <number>", os.Args[0])
 }
 
 func main() {
 	if err := Task(os.Stdout, os.Args[1:]); err != nil {
 		if errors.Is(err, ErrParameters) {
 			usage(os.Stdout)
-			os.Exit(0)
 		}
 		fmt.Println(err)
-		os.Exit(0)
 	}
 }
