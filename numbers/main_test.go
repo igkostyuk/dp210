@@ -2,63 +2,83 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"os"
-	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
+
+func Test_appendFromDictionary(t *testing.T) {
+	type args struct {
+		key   int
+		words *[]string
+		d     NumberDictionary
+	}
+	tests := []struct {
+		name      string
+		args      args
+		want      *[]string
+		assertion assert.ErrorAssertionFunc
+	}{
+		{"number in dictionary", args{10, &[]string{}, nd}, &[]string{nd[10]}, assert.NoError},
+		{"number not in dictionary", args{55, &[]string{}, nd}, &[]string{}, assert.Error},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.assertion(t, appendFromDictionary(tt.args.key, tt.args.words, tt.args.d))
+			assert.Equal(t, tt.want, tt.args.words)
+		})
+	}
+}
 
 func Test_getTripletName(t *testing.T) {
 	type args struct {
-		n          int
-		dictionary map[int]string
+		n int
+		d NumberDictionary
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
+		name      string
+		args      args
+		want      string
+		assertion assert.ErrorAssertionFunc
 	}{
 		{
 			"valid three word three digits number",
-			args{555, numbersDictionary},
-			"пятьсот пятьдесят пять", false,
+			args{555, nd},
+			"пятьсот пятьдесят пять", assert.NoError,
 		},
 		{
 			"valid two word three digits number",
-			args{717, numbersDictionary},
-			"семьсот семнадцать", false,
+			args{717, nd},
+			"семьсот семнадцать", assert.NoError,
 		},
 		{
 			"missing hundreds in dictionary",
 			args{100, map[int]string{}},
-			"", true,
+			"", assert.Error,
 		},
 		{
 			"missing tens in dictionary",
 			args{20, map[int]string{}},
-			"", true,
+			"", assert.Error,
 		},
 		{
 			"missing teens in dictionary",
 			args{10, map[int]string{}},
-			"", true,
+			"", assert.Error,
 		},
 		{
 			"missing ones in dictionary",
 			args{21, map[int]string{20: "test"}},
-			"", true,
+			"", assert.Error,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := getTripletName(tt.args.n, tt.args.dictionary)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("getTripletName() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("getTripletName() = %v, want %v", got, tt.want)
-			}
+			got, err := getTripletName(tt.args.n, tt.args.d)
+			tt.assertion(t, err)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -77,82 +97,126 @@ func Test_parseTriplets(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := parseTriplets(tt.args.number); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("parseTriplets() = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.want, parseTriplets(tt.args.number))
+		})
+	}
+}
+
+func Test_getPeriodName(t *testing.T) {
+	type args struct {
+		idx int
+		n   int
+		pd  PeriodDictionary
+	}
+	tests := []struct {
+		name      string
+		args      args
+		want      string
+		assertion assert.ErrorAssertionFunc
+	}{
+		{"valid name", args{1, 1, pd}, "миллион", assert.NoError},
+		{"too big period index", args{6, 1, pd}, "", assert.Error},
+		{"too big period index", args{0, 5, PeriodDictionary{{""}}}, "", assert.Error},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := getPeriodName(tt.args.idx, tt.args.n, tt.args.pd)
+			tt.assertion(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func Test_appendTripletsNames(t *testing.T) {
+	type args struct {
+		tr    []int
+		words *[]string
+		nd    NumberDictionary
+		pd    PeriodDictionary
+	}
+	tests := []struct {
+		name      string
+		args      args
+		want      *[]string
+		assertion assert.ErrorAssertionFunc
+	}{
+
+		{
+			"three triplets",
+			args{[]int{789, 456, 123}, &[]string{}, nd, pd},
+			&[]string{
+				"сто двадцать три", "миллиона",
+				"четыреста пятьдесят шесть", "тысяч",
+				"семьсот восемьдесят девять",
+			}, assert.NoError,
+		},
+		{
+			"\"ин\"suffix",
+			args{[]int{0, 1}, &[]string{}, nd, pd},
+			&[]string{"одна", "тысяча", ""}, assert.NoError,
+		},
+		{
+			"\"ва\"suffix",
+			args{[]int{0, 2}, &[]string{}, nd, pd},
+			&[]string{"две", "тысячи", ""}, assert.NoError,
+		},
+		{
+			"first triplet missing in dictionary",
+			args{[]int{1}, &[]string{}, nil, pd},
+			&[]string{}, assert.Error,
+		},
+		{
+			"second triplet missing in dictionary",
+			args{[]int{1, 2}, &[]string{}, NumberDictionary{1: "one"}, pd},
+			&[]string{}, assert.Error,
+		},
+		{
+			"missing period name",
+			args{[]int{1, 2}, &[]string{}, NumberDictionary{1: "one", 2: "two"}, nil},
+			&[]string{}, assert.Error,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.assertion(t, appendTripletsNames(tt.args.tr, tt.args.words, tt.args.nd, tt.args.pd))
+			assert.Equal(t, tt.want, tt.args.words)
 		})
 	}
 }
 
 func Test_getNumberName(t *testing.T) {
 	type args struct {
-		number string
-		nd     map[int]string
-		pd     [][]string
+		n  int64
+		nd NumberDictionary
+		pd PeriodDictionary
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    string
-		wantErr bool
+		name      string
+		args      args
+		want      string
+		assertion assert.ErrorAssertionFunc
 	}{
 		{
-			"invalid number",
-			args{number: "invalid", nd: numbersDictionary, pd: periodDictionary},
-			"", true,
-		},
-		{
 			"number zero",
-			args{number: "0", nd: numbersDictionary, pd: periodDictionary},
-			"нуль", false,
+			args{n: 0, nd: nd, pd: pd},
+			"нуль", assert.NoError,
 		},
 		{
 			"negative one",
-			args{number: "-1", nd: numbersDictionary, pd: periodDictionary},
-			"минус один", false,
+			args{n: -1, nd: nd, pd: pd},
+			"минус один", assert.NoError,
 		},
 		{
-			"first triplet missing in dictionary",
-			args{number: "10", nd: map[int]string{}, pd: periodDictionary},
-			"", true,
-		},
-		{
-			"second triplet missing in dictionary",
-			args{number: "1000", nd: map[int]string{0: "test"}, pd: periodDictionary},
-			"", true,
-		},
-		{
-			"\"ин\"suffix",
-			args{number: "1000", nd: numbersDictionary, pd: periodDictionary},
-			"одна тысяча", false,
-		},
-		{
-			"\"ва\"suffix",
-			args{number: "2000", nd: numbersDictionary, pd: periodDictionary},
-			"две тысячи", false,
-		},
-		{
-			"second plural index number",
-			args{number: "11000", nd: numbersDictionary, pd: periodDictionary},
-			"одиннадцать тысяч", false,
-		},
-
-		{
-			"three triplet number",
-			args{number: "123456789", nd: numbersDictionary, pd: periodDictionary},
-			"сто двадцать три миллиона четыреста пятьдесят шесть тысяч семьсот восемьдесят девять", false,
+			"get triplet name error",
+			args{n: 1, nd: nil, pd: pd},
+			"", assert.Error,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := getNumberName(tt.args.number, tt.args.nd, tt.args.pd)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("getNumberName() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("getNumberName() = %v, want %v", got, tt.want)
-			}
+			got, err := getNumberName(tt.args.n, tt.args.nd, tt.args.pd)
+			tt.assertion(t, err)
+			assert.Equal(t, tt.want, got)
 		})
 	}
 }
@@ -162,47 +226,42 @@ func TestTask(t *testing.T) {
 		args []string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		wantW   string
-		wantErr bool
+		name       string
+		args       args
+		wantW      string
+		dictionary NumberDictionary
+		assertion  assert.ErrorAssertionFunc
 	}{
-		{"invalid args", args{[]string{"invalid"}}, "", true},
-		{"invalid args lenght", args{[]string{"2", "2"}}, "", true},
-		{"valid args", args{[]string{"2"}}, "2 - два\n", false},
+		{"invalid args", args{[]string{"invalid"}}, "", nd, assert.Error},
+		{"invalid args length", args{[]string{"2", "2"}}, "", nd, assert.Error},
+		{"valid args", args{[]string{"2"}}, "2 - два\n", nd, assert.NoError},
+		{"invalid dictionary", args{[]string{"2"}}, "", nil, assert.Error},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			nd = tt.dictionary
 			w := &bytes.Buffer{}
-			if err := Task(w, tt.args.args); (err != nil) != tt.wantErr {
-				t.Errorf("Task() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if gotW := w.String(); gotW != tt.wantW {
-				t.Errorf("Task() =\n%v\n, want \n%v\n", gotW, tt.wantW)
-			}
+			tt.assertion(t, Task(w, tt.args.args))
+			assert.Equal(t, tt.wantW, w.String())
 		})
 	}
 }
 
 func Test_usage(t *testing.T) {
-
-	os.Args[0] = "test"
+	name := "test"
+	os.Args[0] = name
 
 	tests := []struct {
 		name  string
 		wantW string
 	}{
-		{"usage", "test: print number name\n" + "usage: test <number>"},
+		{"usage test name", fmt.Sprintf("%s: print number name\nusage: %s <number>", name, name)},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := &bytes.Buffer{}
 			usage(w)
-			if gotW := w.String(); gotW != tt.wantW {
-				t.Errorf("usage() got\n%v\nwant\n%v", gotW, tt.wantW)
-			}
-
+			assert.Equal(t, tt.wantW, w.String())
 		})
 	}
 }
@@ -211,7 +270,7 @@ func Test_main(t *testing.T) {
 	tests := []struct {
 		name string
 	}{
-		// TODO: Add test cases.
+		{"no panic"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
