@@ -35,7 +35,7 @@ func Task(w io.Writer, args []string) error {
 		filename, line := args[0], args[1]
 		count, err := count(filename, line)
 		if err != nil {
-			return fmt.Errorf("tast count: %w", err)
+			return fmt.Errorf("task count: %w", err)
 		}
 		fmt.Fprintf(w, "in the file:%s,", filename)
 		fmt.Fprintf(w, " the line:\"%s\" appears %d times", line, count)
@@ -65,6 +65,5 @@ func usage(w io.Writer) {
 func main() {
 	if err := Task(os.Stdout, os.Args[1:]); err != nil {
 		fmt.Println(err)
-		os.Exit(0)
 	}
 }
