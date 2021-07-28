@@ -69,7 +69,7 @@ func countLucky(min, max int, isLucky func(int) bool) int {
 	return luckyCounter
 }
 
-func readTicketNumber(r io.Reader) (int, error) {
+func readTicketNumber(r *bufio.Reader) (int, error) {
 	line, err := readLine(r)
 	if err != nil {
 		return 0, err
@@ -81,7 +81,7 @@ func readTicketNumber(r io.Reader) (int, error) {
 	return n, nil
 }
 
-func readCountingMethod(r io.Reader) (string, error) {
+func readCountingMethod(r *bufio.Reader) (string, error) {
 	line, err := readLine(r)
 	if err != nil {
 		return "", fmt.Errorf("read filename: %w", err)
@@ -93,8 +93,7 @@ func readCountingMethod(r io.Reader) (string, error) {
 	return strings.TrimSpace(string(data)), err
 }
 
-func readLine(r io.Reader) (string, error) {
-	br := bufio.NewReader(r)
+func readLine(br *bufio.Reader) (string, error) {
 	line, err := br.ReadString('\n')
 	if err != nil {
 		return "", err
@@ -105,31 +104,30 @@ func readLine(r io.Reader) (string, error) {
 // Task count lucky tickets from to number from reader
 // with method in file.
 func Task(r io.Reader, w io.Writer) error {
+	br := bufio.NewReader(r)
 	fmt.Fprint(w, "Enter config filename: ")
-	method, err := readCountingMethod(r)
+	method, err := readCountingMethod(br)
 	if err != nil {
 		return err
 	}
 	fmt.Fprintf(w, "count method: %s\n", method)
 
 	fmt.Fprint(w, "Min: ")
-	min, err := readTicketNumber(r)
+	min, err := readTicketNumber(br)
 	if err != nil {
 		return err
 	}
 
 	fmt.Fprint(w, "Max: ")
-	max, err := readTicketNumber(r)
+	max, err := readTicketNumber(br)
 	if err != nil {
 		return err
 	}
-
-	fmt.Fprintln(w, "--Result--")
 	c, err := countNumbers(min, max, method)
 	if err != nil {
 		return err
 	}
-	fmt.Fprint(w, c)
+	fmt.Fprint(w, "--Result--\n", c)
 	return nil
 }
 
@@ -141,6 +139,5 @@ func main() {
 	usage(os.Stdout)
 	if err := Task(os.Stdin, os.Stdout); err != nil {
 		fmt.Println(err)
-		os.Exit(0)
 	}
 }
