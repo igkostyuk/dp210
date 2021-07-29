@@ -90,7 +90,7 @@ func Task(r io.Reader, w io.Writer) error {
 		fmt.Fprintln(w, "============= Triangles list: ===============")
 	}
 	for i, t := range ts {
-		fmt.Fprintf(w, "%d. %s", i+1, t)
+		fmt.Fprintf(w, "%d. %s\n", i+1, t)
 	}
 
 	return nil

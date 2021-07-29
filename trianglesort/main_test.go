@@ -189,14 +189,14 @@ func TestTask(t *testing.T) {
 		{"valid triangle", args{strings.NewReader("test,1,1,1\n no\n")},
 			"Enter triangle <name>,<a>,<b>,<c>: continue [y yes] ?:" +
 				"============= Triangles list: ===============\n" +
-				"1. [Triangle test]: 0.43 cm", assert.NoError},
+				"1. [Triangle test]: 0.43 cm\n", assert.NoError},
 
 		{"valid two triangles", args{strings.NewReader("one,1,1,1\n yes\ntwo,5,4,3\n no\n")},
 			"Enter triangle <name>,<a>,<b>,<c>: continue [y yes] ?:" +
 				"Enter triangle <name>,<a>,<b>,<c>: continue [y yes] ?:" +
 				"============= Triangles list: ===============\n" +
-				"1. [Triangle two]: 6.00 cm" +
-				"2. [Triangle one]: 0.43 cm", assert.NoError},
+				"1. [Triangle two]: 6.00 cm\n" +
+				"2. [Triangle one]: 0.43 cm\n", assert.NoError},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
