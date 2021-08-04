@@ -72,56 +72,63 @@ var (
 	ErrNumbersDictionary = errors.New("missing in numbers dictionary")
 	// ErrPeriodDictionary indicates that a period missing in dictionary.
 	ErrPeriodDictionary = errors.New("missing in period dictionary")
-
 	// ErrParameters indicates that program called with wrong number of parameters
-	ErrParameters = errors.New("parameter length should be 1 <number>")
+	ErrParameters = errors.New("should have one int64 parameter <number>")
 )
 
-func appendFromDictionary(key int, words *[]string, d NumberDictionary) error {
-	word, ok := d[key]
-	if !ok {
-		return fmt.Errorf("%d:%w", key, ErrNumbersDictionary)
+func convertTensToWords(t int, d NumberDictionary) ([]string, error) {
+	words := make([]string, 0, 2)
+	word, ok := "", false
+	if t > 0 && t < 20 {
+		if word, ok = d[t]; !ok {
+			return nil, fmt.Errorf("%d:%w", t, ErrNumbersDictionary)
+		}
+		return append(words, word), nil
 	}
-	*words = append(*words, word)
-	return nil
+	if t >= 20 {
+		key := t / 10 * 10
+		if word, ok = d[key]; !ok {
+			return nil, fmt.Errorf("%d:%w", key, ErrNumbersDictionary)
+		}
+		words = append(words, word)
+		t -= key
+	}
+	if t > 0 {
+		if word, ok = d[t]; !ok {
+			return nil, fmt.Errorf("%d:%w", t, ErrNumbersDictionary)
+		}
+		words = append(words, word)
+	}
+	return words, nil
 }
 
-func getTripletName(n int, d NumberDictionary) (string, error) {
+func convertTripletToWords(t int, d NumberDictionary) ([]string, error) {
 	words := make([]string, 0, 3)
-	if n >= 100 {
-		if err := appendFromDictionary(n/100*100, &words, d); err != nil {
-			return "", fmt.Errorf("get triplet name:%w", err)
+	if t >= 100 {
+		key := t / 100 * 100
+		word, ok := d[key]
+		if !ok {
+			return nil, fmt.Errorf("%d:%w", key, ErrNumbersDictionary)
 		}
-		n %= 100
+		words = append(words, word)
+		t -= key
 	}
-	if n > 0 && n < 20 {
-		if err := appendFromDictionary(n, &words, d); err != nil {
-			return "", fmt.Errorf("get triplet name:%w", err)
+	if t > 0 {
+		hw, err := convertTensToWords(t, d)
+		if err != nil {
+			return nil, fmt.Errorf("get tens words:%w", err)
 		}
-		n = 0
+		words = append(words, hw...)
 	}
-	if n >= 20 {
-		if err := appendFromDictionary(n/10*10, &words, d); err != nil {
-			return "", fmt.Errorf("get triplet name:%w", err)
-		}
-		n %= 10
-	}
-	if n > 0 {
-		if err := appendFromDictionary(n, &words, d); err != nil {
-			return "", fmt.Errorf("get triplet name:%w", err)
-		}
+	return words, nil
+}
+
+func convertTripletToWord(n int, d NumberDictionary) (string, error) {
+	words, err := convertTripletToWords(n, d)
+	if err != nil {
+		return "", fmt.Errorf("get triplet name:%w", err)
 	}
 	return strings.TrimSpace(strings.Join(words, " ")), nil
-}
-
-func parseTriplets(number int64) []int {
-	t := []int{}
-	for number > 0 {
-		t = append(t, int(number%1000))
-		number /= 1000
-	}
-
-	return t
 }
 
 func getPluralIndex(n int) int {
@@ -153,72 +160,100 @@ func getPeriodName(idx, n int, pd PeriodDictionary) (string, error) {
 	return periodNames[pluralIndex], nil
 }
 
-func appendTripletsNames(tr []int, words *[]string, nd NumberDictionary, pd PeriodDictionary) error {
+func getThousandsName(tn string) string {
+	if strings.HasSuffix(tn, "ин") {
+		return strings.TrimSuffix(tn, "ин") + "на"
+	}
+	if strings.HasSuffix(tn, "ва") {
+		return strings.TrimSuffix(tn, "ва") + "ве"
+	}
+	return tn
+}
+
+func convertTripletsToWords(tr []int, nd NumberDictionary, pd PeriodDictionary) ([]string, error) {
+	words := make([]string, 0)
+
 	for i := len(tr) - 1; i > 0; i-- {
-		tripletName, err := getTripletName(tr[i], nd)
+		tn, err := convertTripletToWord(tr[i], nd)
 		if err != nil {
-			return fmt.Errorf("append triplet name:%e", err)
+			return nil, fmt.Errorf("get triplet name:%e", err)
 		}
+
 		if i == 1 {
-			if strings.HasSuffix(tripletName, "ин") {
-				tripletName = strings.TrimSuffix(tripletName, "ин") + "на"
-			}
-			if strings.HasSuffix(tripletName, "ва") {
-				tripletName = strings.Replace(tripletName, "ва", "ве", 1)
-			}
+			tn = getThousandsName(tn)
 		}
+
 		pn, err := getPeriodName(i-1, tr[i], pd)
 		if err != nil {
-			return fmt.Errorf("append triplet name:%e", err)
+			return nil, fmt.Errorf("get triplet period:%e", err)
 		}
-		*words = append(*words, tripletName, pn)
+
+		words = append(words, tn, pn)
 	}
-	tripletName, err := getTripletName(tr[0], nd)
+
+	tn, err := convertTripletToWord(tr[0], nd)
 	if err != nil {
-		return fmt.Errorf("append triplet name:%e", err)
+		return nil, fmt.Errorf("get triplet name:%e", err)
 	}
-	*words = append(*words, tripletName)
-	return nil
+
+	words = append(words, tn)
+	return words, nil
 }
-func getNumberName(n int64, nd NumberDictionary, pd PeriodDictionary) (string, error) {
+
+func parseTriplets(n int64) []int {
+	t := []int{}
+	for n > 0 {
+		t = append(t, int(n%1000))
+		n /= 1000
+	}
+	return t
+}
+
+func convertNumberToWord(n int64, nd NumberDictionary, pd PeriodDictionary) (string, error) {
 	words := []string{}
 	if n == 0 {
 		return "нуль", nil
 	}
+
 	if n < 0 {
 		words = append(words, "минус")
 		n *= -1
 	}
-	triplets := parseTriplets(n)
-	if err := appendTripletsNames(triplets, &words, nd, pd); err != nil {
+
+	t := parseTriplets(n)
+
+	tw, err := convertTripletsToWords(t, nd, pd)
+	if err != nil {
 		return "", fmt.Errorf("get number name:%w", err)
 	}
+
+	words = append(words, tw...)
 	return strings.TrimSpace(strings.Join(words, " ")), nil
 }
 
-// Task spell params number in words.
-func Task(w io.Writer, args []string) error {
-	// ErrSize indicates that a value does not have the right syntax for the size type.
-	if len(args) != 1 {
+// Task converts params number in words.
+func Task(w io.Writer, parameters []string) error {
+	if len(parameters) != 1 {
 		return ErrParameters
 	}
-	n, err := strconv.ParseInt(args[0], 10, 64)
+	n, err := strconv.ParseInt(parameters[0], 10, 64)
 	if err != nil {
-		return fmt.Errorf("parsing int:%w", err)
+		return fmt.Errorf("number should be int64:%w", err)
 	}
 
-	numberName, err := getNumberName(n, nd, pd)
+	word, err := convertNumberToWord(n, nd, pd)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(w, "%s - %s\n", args[0], numberName)
+
+	fmt.Fprintf(w, "%s - %s\n", parameters[0], word)
 
 	return nil
 }
 
 func usage(w io.Writer) {
 	fmt.Fprintf(w, "%s: print number name\n", os.Args[0])
-	fmt.Fprintf(w, "usage: %s <number>", os.Args[0])
+	fmt.Fprintf(w, "usage: %s <number>\n", os.Args[0])
 }
 
 func main() {
