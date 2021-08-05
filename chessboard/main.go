@@ -50,11 +50,11 @@ func run(w io.Writer, args []string) error {
 
 // Task write string of board with task parameters.
 func Task(w io.Writer, p *Parameters) error {
-	board, err := board.NewBoard(p.Height, p.Width, board.BlackSymbol, board.WhiteSymbol)
+	b, err := board.NewBoard(p.Height, p.Width, board.BlackSymbol, board.WhiteSymbol)
 	if err != nil {
 		return fmt.Errorf("task creating board:%w", err)
 	}
-	return board.Write(w)
+	return b.Write(w)
 }
 
 func usage(w io.Writer) {
