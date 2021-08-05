@@ -1,7 +1,10 @@
 package board
 
 import (
+	"bufio"
 	"errors"
+	"fmt"
+	"io"
 	"strings"
 )
 
@@ -42,6 +45,22 @@ func (br *Board) String() string {
 	}
 
 	return b.String()
+}
+
+// Write write board to writer
+func (br *Board) Write(w io.Writer) error {
+	bw := bufio.NewWriter(w)
+	for j, row := range br.Squares {
+		for i := range row {
+			if _, err := bw.WriteRune(br.Squares[j][i]); err != nil {
+				return fmt.Errorf("writing board:%w", err)
+			}
+		}
+		if _, err := bw.WriteRune('\n'); err != nil {
+			return fmt.Errorf("writing board:%w", err)
+		}
+	}
+	return bw.Flush()
 }
 
 func createSquares(height, width int, blackSymbol, whiteSymbol rune) [][]rune {

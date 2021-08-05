@@ -1,6 +1,7 @@
 package board
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -56,7 +57,12 @@ func TestBoard_String(t *testing.T) {
 		fields fields
 		want   string
 	}{
-		{"valid field", fields{height: 1, width: 2, squares: [][]rune{{'*', ' '}, {' ', '*'}}}, "* \n *\n"},
+		{
+			"valid field",
+			fields{
+				height: 2, width: 2,
+				squares: [][]rune{{'*', ' '}, {' ', '*'}},
+			}, "* \n *\n"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -100,6 +106,41 @@ func Test_createSquares(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.want, createSquares(tt.args.height, tt.args.width, tt.args.blackSymbol, tt.args.whiteSymbol))
+		})
+	}
+}
+
+func TestBoard_Write(t *testing.T) {
+	type fields struct {
+		Height  int
+		Width   int
+		Squares [][]rune
+	}
+	tests := []struct {
+		name      string
+		fields    fields
+		wantW     string
+		assertion assert.ErrorAssertionFunc
+	}{
+		{
+			"valid field",
+			fields{
+				Height: 2, Width: 2,
+				Squares: [][]rune{{'*', ' '}, {' ', '*'}},
+			},
+			"* \n *\n", assert.NoError,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			br := &Board{
+				Height:  tt.fields.Height,
+				Width:   tt.fields.Width,
+				Squares: tt.fields.Squares,
+			}
+			w := &bytes.Buffer{}
+			tt.assertion(t, br.Write(w))
+			assert.Equal(t, tt.wantW, w.String())
 		})
 	}
 }

@@ -114,7 +114,7 @@ func Test_usage(t *testing.T) {
 	}{
 		{
 			"test name",
-			fmt.Sprintf("%s: print chessboard\nusage: %s <height> <width>", name, name),
+			fmt.Sprintf("%s: print chessboard\nusage: %s <height> <width>\n", name, name),
 		},
 	}
 	for _, tt := range tests {

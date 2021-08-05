@@ -13,7 +13,7 @@ import (
 var (
 
 	// ErrParameters indicates that program called with wrong number of parameters
-	ErrParameters = errors.New("parameter length should be 2 <height> <width>")
+	ErrParameters = errors.New("should be 2 parameters <height> <width>")
 )
 
 // Parameters represent task parameters.
@@ -54,20 +54,19 @@ func Task(w io.Writer, p *Parameters) error {
 	if err != nil {
 		return fmt.Errorf("task creating board:%w", err)
 	}
-	fmt.Fprint(w, board)
-	return nil
+	return board.Write(w)
 }
 
 func usage(w io.Writer) {
 	fmt.Fprintf(w, "%s: print chessboard\n", os.Args[0])
-	fmt.Fprintf(w, "usage: %s <height> <width>", os.Args[0])
+	fmt.Fprintf(w, "usage: %s <height> <width>\n", os.Args[0])
 }
 
 func main() {
 	if err := run(os.Stdout, os.Args[1:]); err != nil {
-		if !errors.Is(err, ErrParameters) {
-			fmt.Println(err)
+		if errors.Is(err, ErrParameters) {
+			usage(os.Stdout)
 		}
-		usage(os.Stdout)
+		fmt.Println(err)
 	}
 }
