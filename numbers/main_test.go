@@ -124,12 +124,30 @@ func Test_getPeriodName(t *testing.T) {
 		want      string
 		assertion assert.ErrorAssertionFunc
 	}{
-		{"valid name", args{1, 10, pd}, "миллионов", assert.NoError},
-		{"valid name", args{1, 3, pd}, "миллиона", assert.NoError},
-		{"valid name", args{1, 1, pd}, "миллион", assert.NoError},
-		{"valid name", args{1, 50, pd}, "миллионов", assert.NoError},
-		{"too big period index", args{6, 1, pd}, "", assert.Error},
-		{"too big period index", args{0, 5, PeriodDictionary{{""}}}, "", assert.Error},
+		{
+			"valid name",
+			args{1, 10, pd}, "миллионов", assert.NoError,
+		},
+		{
+			"valid name",
+			args{1, 3, pd}, "миллиона", assert.NoError,
+		},
+		{
+			"valid name",
+			args{1, 1, pd}, "миллион", assert.NoError,
+		},
+		{
+			"valid name",
+			args{1, 50, pd}, "миллионов", assert.NoError,
+		},
+		{
+			"too big period index",
+			args{6, 1, pd}, "", assert.Error,
+		},
+		{
+			"too big index in period",
+			args{1, 5, PeriodDictionary{{""}}}, "", assert.Error,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -292,12 +310,19 @@ func TestTask(t *testing.T) {
 		{"invalid args length", args{[]string{"2", "2"}}, "", nd, assert.Error},
 		{"invalid dictionary", args{[]string{"2"}}, "", nil, assert.Error},
 	}
+	tmp := NumberDictionary{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			nd = tt.dictionary
+			if tt.dictionary == nil {
+				tmp, nd = nd, tmp
+			}
 			w := &bytes.Buffer{}
 			tt.assertion(t, Task(w, tt.args.args))
 			assert.Equal(t, tt.wantW, w.String())
+			if tt.dictionary == nil {
+				tmp, nd = nd, tmp
+			}
+
 		})
 	}
 }
