@@ -335,7 +335,7 @@ func Test_usage(t *testing.T) {
 		name  string
 		wantW string
 	}{
-		{"usage test name", fmt.Sprintf("%s: print number name\nusage: %s <number>\n", name, name)},
+		{"usage test name", fmt.Sprintf("%s: print number converted to words\nusage: %s <number>\n", name, name)},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

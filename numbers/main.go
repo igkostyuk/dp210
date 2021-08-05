@@ -240,7 +240,7 @@ func Task(w io.Writer, parameters []string) error {
 }
 
 func usage(w io.Writer) {
-	fmt.Fprintf(w, "%s: print number name\n", os.Args[0])
+	fmt.Fprintf(w, "%s: print number converted to words\n", os.Args[0])
 	fmt.Fprintf(w, "usage: %s <number>\n", os.Args[0])
 }
 
