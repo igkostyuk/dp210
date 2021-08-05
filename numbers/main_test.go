@@ -21,24 +21,34 @@ func Test_convertTensToWords(t *testing.T) {
 		assertion assert.ErrorAssertionFunc
 	}{
 		{
-			"one word number",
-			args{1, nd}, []string{"один"}, assert.NoError,
+			name:      "one word number",
+			args:      args{1, nd},
+			want:      []string{"один"},
+			assertion: assert.NoError,
 		},
 		{
-			"two words number",
-			args{21, nd}, []string{"двадцать", "один"}, assert.NoError,
+			name:      "two words number",
+			args:      args{21, nd},
+			want:      []string{"двадцать", "один"},
+			assertion: assert.NoError,
 		},
 		{
-			"not in dictionary one word number",
-			args{1, map[int]string{}}, nil, assert.Error,
+			name:      "not in dictionary one word number",
+			args:      args{1, map[int]string{}},
+			want:      nil,
+			assertion: assert.Error,
 		},
 		{
-			"not in dictionary first word of two word number",
-			args{21, map[int]string{1: "one"}}, nil, assert.Error,
+			name:      "not in dictionary first word of two word number",
+			args:      args{21, map[int]string{1: "one"}},
+			want:      nil,
+			assertion: assert.Error,
 		},
 		{
-			"not in dictionary second word of two word number",
-			args{21, map[int]string{20: "twenty"}}, nil, assert.Error,
+			name:      "not in dictionary second word of two word number",
+			args:      args{21, map[int]string{20: "twenty"}},
+			want:      nil,
+			assertion: assert.Error,
 		},
 	}
 	for _, tt := range tests {
@@ -62,16 +72,22 @@ func Test_convertTripletToWords(t *testing.T) {
 		assertion assert.ErrorAssertionFunc
 	}{
 		{
-			"valid three words number",
-			args{123, nd}, []string{"сто", "двадцать", "три"}, assert.NoError,
+			name:      "valid three words number",
+			args:      args{123, nd},
+			want:      []string{"сто", "двадцать", "три"},
+			assertion: assert.NoError,
 		},
 		{
-			"not in dictionary first of  three words number",
-			args{123, map[int]string{20: "", 3: ""}}, nil, assert.Error,
+			name:      "not in dictionary first of  three words number",
+			args:      args{123, map[int]string{20: "", 3: ""}},
+			want:      nil,
+			assertion: assert.Error,
 		},
 		{
-			"not in dictionary third of  three words number",
-			args{123, map[int]string{100: "", 20: ""}}, nil, assert.Error,
+			name:      "not in dictionary third of  three words number",
+			args:      args{123, map[int]string{100: "", 20: ""}},
+			want:      nil,
+			assertion: assert.Error,
 		},
 	}
 	for _, tt := range tests {
@@ -95,12 +111,16 @@ func Test_convertTripletToWord(t *testing.T) {
 		assertion assert.ErrorAssertionFunc
 	}{
 		{
-			"valid three words number",
-			args{123, nd}, "сто двадцать три", assert.NoError,
+			name:      "valid three words number",
+			args:      args{123, nd},
+			want:      "сто двадцать три",
+			assertion: assert.NoError,
 		},
 		{
-			"empty dictionary",
-			args{123, map[int]string{}}, "", assert.Error,
+			name:      "empty dictionary",
+			args:      args{123, map[int]string{}},
+			want:      "",
+			assertion: assert.Error,
 		},
 	}
 	for _, tt := range tests {
@@ -125,28 +145,38 @@ func Test_getPeriodName(t *testing.T) {
 		assertion assert.ErrorAssertionFunc
 	}{
 		{
-			"valid name",
-			args{1, 10, pd}, "миллионов", assert.NoError,
+			name:      "valid name",
+			args:      args{1, 10, pd},
+			want:      "миллионов",
+			assertion: assert.NoError,
 		},
 		{
-			"valid name",
-			args{1, 3, pd}, "миллиона", assert.NoError,
+			name:      "valid name",
+			args:      args{1, 3, pd},
+			want:      "миллиона",
+			assertion: assert.NoError,
 		},
 		{
-			"valid name",
-			args{1, 1, pd}, "миллион", assert.NoError,
+			name:      "valid name",
+			args:      args{1, 1, pd},
+			want:      "миллион",
+			assertion: assert.NoError,
 		},
 		{
-			"valid name",
-			args{1, 50, pd}, "миллионов", assert.NoError,
+			name:      "valid name",
+			args:      args{1, 50, pd},
+			want:      "миллионов",
+			assertion: assert.NoError,
 		},
 		{
 			"too big period index",
 			args{6, 1, pd}, "", assert.Error,
 		},
 		{
-			"too big index in period",
-			args{1, 5, PeriodDictionary{{""}}}, "", assert.Error,
+			name:      "too big index in period",
+			args:      args{1, 5, PeriodDictionary{{""}}},
+			want:      "",
+			assertion: assert.Error,
 		},
 	}
 	for _, tt := range tests {
@@ -190,43 +220,50 @@ func Test_convertTripletsToWords(t *testing.T) {
 		assertion assert.ErrorAssertionFunc
 	}{
 		{
-			"three triplets",
-			args{[]int{789, 456, 123}, nd, pd},
-			[]string{
+			name: "three triplets",
+			args: args{[]int{789, 456, 123}, nd, pd},
+			want: []string{
 				"сто двадцать три", "миллиона",
 				"четыреста пятьдесят шесть", "тысяч",
 				"семьсот восемьдесят девять",
-			}, assert.NoError,
+			},
+			assertion: assert.NoError,
 		},
 		{
-			"\"ин\"suffix",
-			args{[]int{0, 1}, nd, pd},
-			[]string{"одна", "тысяча"}, assert.NoError,
+			name:      "\"ин\"suffix",
+			args:      args{[]int{0, 1}, nd, pd},
+			want:      []string{"одна", "тысяча"},
+			assertion: assert.NoError,
 		},
 		{
-			"\"ва\"suffix",
-			args{[]int{0, 2}, nd, pd},
-			[]string{"две", "тысячи"}, assert.NoError,
+			name:      "\"ва\"suffix",
+			args:      args{[]int{0, 2}, nd, pd},
+			want:      []string{"две", "тысячи"},
+			assertion: assert.NoError,
 		},
 		{
-			"zero triplets in middle",
-			args{[]int{0, 0, 1}, nd, pd},
-			[]string{"один", "миллион"}, assert.NoError,
+			name:      "zero triplets in middle",
+			args:      args{[]int{0, 0, 1}, nd, pd},
+			want:      []string{"один", "миллион"},
+			assertion: assert.NoError,
 		},
 		{
-			"first triplet missing in dictionary",
-			args{[]int{1}, nil, pd},
-			nil, assert.Error,
+			name:      "first triplet missing in dictionary",
+			args:      args{[]int{1}, nil, pd},
+			want:      nil,
+			assertion: assert.Error,
 		},
 		{
-			"second triplet missing in dictionary",
-			args{[]int{1, 2}, NumberDictionary{1: "one"}, pd},
-			nil, assert.Error,
+			name:      "second triplet missing in dictionary",
+			args:      args{[]int{1, 2}, NumberDictionary{1: "one"}, pd},
+			want:      nil,
+			assertion: assert.Error,
 		},
 		{
-			"missing period name",
-			args{[]int{1, 2}, NumberDictionary{1: "one", 2: "two"}, nil},
-			nil, assert.Error,
+			name:      "missing period name",
+			args:      args{[]int{1, 2}, NumberDictionary{1: "one", 2: "two"}, nil},
+			want:      nil,
+			assertion: assert.Error,
 		},
 	}
 	for _, tt := range tests {
@@ -247,8 +284,15 @@ func Test_parseTriplets(t *testing.T) {
 		args args
 		want []int
 	}{
-		{"one triplet number", args{number: 123}, []int{123}},
-		{"three triplet number", args{number: 123_456_789}, []int{789, 456, 123}},
+		{
+			name: "one triplet number",
+			args: args{number: 123},
+			want: []int{123},
+		},
+		{
+			name: "three triplet number",
+			args: args{number: 123_456_789},
+			want: []int{789, 456, 123}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -270,19 +314,22 @@ func Test_convertNumberToWord(t *testing.T) {
 		assertion assert.ErrorAssertionFunc
 	}{
 		{
-			"number zero",
-			args{n: 0, nd: nd, pd: pd},
-			"нуль", assert.NoError,
+			name:      "number zero",
+			args:      args{n: 0, nd: nd, pd: pd},
+			want:      "нуль",
+			assertion: assert.NoError,
 		},
 		{
-			"negative one",
-			args{n: -1, nd: nd, pd: pd},
-			"минус один", assert.NoError,
+			name:      "negative one",
+			args:      args{n: -1, nd: nd, pd: pd},
+			want:      "минус один",
+			assertion: assert.NoError,
 		},
 		{
-			"invalid number dictionary",
-			args{n: 1, nd: nil, pd: pd},
-			"", assert.Error,
+			name:      "invalid number dictionary",
+			args:      args{n: 1, nd: nil, pd: pd},
+			want:      "",
+			assertion: assert.Error,
 		},
 	}
 	for _, tt := range tests {
@@ -305,10 +352,34 @@ func TestTask(t *testing.T) {
 		dictionary NumberDictionary
 		assertion  assert.ErrorAssertionFunc
 	}{
-		{"valid args", args{[]string{"2"}}, "2 - два\n", nd, assert.NoError},
-		{"invalid args number", args{[]string{"invalid"}}, "", nd, assert.Error},
-		{"invalid args length", args{[]string{"2", "2"}}, "", nd, assert.Error},
-		{"invalid dictionary", args{[]string{"2"}}, "", nil, assert.Error},
+		{
+			name:       "valid args",
+			args:       args{[]string{"2"}},
+			wantW:      "2 - два\n",
+			dictionary: nd,
+			assertion:  assert.NoError,
+		},
+		{
+			name:       "invalid args number",
+			args:       args{[]string{"invalid"}},
+			wantW:      "",
+			dictionary: nd,
+			assertion:  assert.Error,
+		},
+		{
+			name:       "invalid args length",
+			args:       args{[]string{"2", "2"}},
+			wantW:      "",
+			dictionary: nd,
+			assertion:  assert.Error,
+		},
+		{
+			name:       "invalid dictionary",
+			args:       args{[]string{"2"}},
+			wantW:      "",
+			dictionary: nil,
+			assertion:  assert.Error,
+		},
 	}
 	tmp := NumberDictionary{}
 	for _, tt := range tests {
@@ -335,7 +406,9 @@ func Test_usage(t *testing.T) {
 		name  string
 		wantW string
 	}{
-		{"usage test name", fmt.Sprintf("%s: print number converted to words\nusage: %s <number>\n", name, name)},
+		{
+			name:  "usage test name",
+			wantW: fmt.Sprintf("%s: print number converted to words\nusage: %s <number>\n", name, name)},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
