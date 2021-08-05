@@ -25,7 +25,7 @@ type Board struct {
 	Squares [][]rune
 }
 
-// NewBoard creates new board with height and width sizes and black and witer symbols.
+// NewBoard creates new board with height and width sizes and black and whiter symbols.
 func NewBoard(height, width int, blackSymbol, whiteSymbol rune) (*Board, error) {
 	if height <= 0 || width <= 0 {
 		return nil, ErrSize

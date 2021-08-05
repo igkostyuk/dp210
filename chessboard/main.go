@@ -48,7 +48,7 @@ func run(w io.Writer, args []string) error {
 	return Task(w, p)
 }
 
-// Task write string of board with task parameters.
+// Task write board with task parameters.
 func Task(w io.Writer, p *Parameters) error {
 	b, err := board.NewBoard(p.Height, p.Width, board.BlackSymbol, board.WhiteSymbol)
 	if err != nil {
