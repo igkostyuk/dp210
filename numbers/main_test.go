@@ -124,10 +124,10 @@ func Test_getPeriodName(t *testing.T) {
 		want      string
 		assertion assert.ErrorAssertionFunc
 	}{
+		{"valid name", args{1, 10, pd}, "миллионов", assert.NoError},
+		{"valid name", args{1, 3, pd}, "миллиона", assert.NoError},
 		{"valid name", args{1, 1, pd}, "миллион", assert.NoError},
 		{"valid name", args{1, 50, pd}, "миллионов", assert.NoError},
-		{"valid name", args{1, 3, pd}, "миллиона", assert.NoError},
-		{"valid name", args{0, 1, pd}, "тысяча", assert.NoError},
 		{"too big period index", args{6, 1, pd}, "", assert.Error},
 		{"too big period index", args{0, 5, PeriodDictionary{{""}}}, "", assert.Error},
 	}
@@ -140,23 +140,21 @@ func Test_getPeriodName(t *testing.T) {
 	}
 }
 
-func Test_getThousandsName(t *testing.T) {
-	type args struct {
-		tn string
-	}
+func Test_fixThousandsSuffix(t *testing.T) {
 	tests := []struct {
 		name string
-		args args
+		args string
 		want string
 	}{
-		{"ин suffix", args{"один"}, "одна"},
-		{"ин in words", args{"одиннадцать"}, "одиннадцать"},
-		{"ва suffix", args{"два"}, "две"},
-		{"ва in words", args{"двадцать"}, "двадцать"},
+		{"ин suffix", "один", "одна"},
+		{"ин in words", "одиннадцать", "одиннадцать"},
+		{"ва suffix", "два", "две"},
+		{"ва in words", "двадцать", "двадцать"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, getThousandsName(tt.args.tn))
+			fixThousandsSuffix(&tt.args)
+			assert.Equal(t, tt.want, tt.args)
 		})
 	}
 }
@@ -185,12 +183,17 @@ func Test_convertTripletsToWords(t *testing.T) {
 		{
 			"\"ин\"suffix",
 			args{[]int{0, 1}, nd, pd},
-			[]string{"одна", "тысяча", ""}, assert.NoError,
+			[]string{"одна", "тысяча"}, assert.NoError,
 		},
 		{
 			"\"ва\"suffix",
 			args{[]int{0, 2}, nd, pd},
-			[]string{"две", "тысячи", ""}, assert.NoError,
+			[]string{"две", "тысячи"}, assert.NoError,
+		},
+		{
+			"zero triplets in middle",
+			args{[]int{0, 0, 1}, nd, pd},
+			[]string{"один", "миллион"}, assert.NoError,
 		},
 		{
 			"first triplet missing in dictionary",

@@ -71,7 +71,7 @@ var (
 	// ErrNumbersDictionary indicates that a number missing in dictionary.
 	ErrNumbersDictionary = errors.New("missing in numbers dictionary")
 	// ErrPeriodDictionary indicates that a period missing in dictionary.
-	ErrPeriodDictionary = errors.New("missing in period dictionary")
+	ErrPeriodDictionary = errors.New("missing in number period dictionary")
 	// ErrParameters indicates that program called with wrong number of parameters
 	ErrParameters = errors.New("should have one int64 parameter <number>")
 )
@@ -131,77 +131,65 @@ func convertTripletToWord(n int, d NumberDictionary) (string, error) {
 	return strings.TrimSpace(strings.Join(words, " ")), nil
 }
 
-func getPluralIndex(n int) int {
+func getPeriodName(idx, n int, pd PeriodDictionary) (string, error) {
+	if idx > len(pd)-1 || len(pd[idx]) != 3 {
+		return "", ErrPeriodDictionary
+	}
 	n %= 100
 	if n > 4 && n < 20 {
-		return 2
+		return pd[idx][2], nil
 	}
 	n %= 10
 	if n > 1 && n <= 4 {
-		return 1
+		return pd[idx][1], nil
 	}
 	if n == 1 {
-		return 0
+		return pd[idx][0], nil
 	}
-
-	return 2
+	return pd[idx][2], nil
 }
 
-func getPeriodName(idx, n int, pd PeriodDictionary) (string, error) {
-	if idx > len(pd)-1 {
-		return "", ErrPeriodDictionary
+func fixThousandsSuffix(tn *string) {
+	if strings.HasSuffix(*tn, "ин") {
+		*tn = strings.TrimSuffix(*tn, "ин") + "на"
 	}
-	periodNames := pd[idx]
-	pluralIndex := getPluralIndex(n)
-
-	if pluralIndex > len(periodNames)-1 {
-		return "", ErrPeriodDictionary
+	if strings.HasSuffix(*tn, "ва") {
+		*tn = strings.TrimSuffix(*tn, "ва") + "ве"
 	}
-	return periodNames[pluralIndex], nil
-}
-
-func getThousandsName(tn string) string {
-	if strings.HasSuffix(tn, "ин") {
-		return strings.TrimSuffix(tn, "ин") + "на"
-	}
-	if strings.HasSuffix(tn, "ва") {
-		return strings.TrimSuffix(tn, "ва") + "ве"
-	}
-	return tn
 }
 
 func convertTripletsToWords(tr []int, nd NumberDictionary, pd PeriodDictionary) ([]string, error) {
 	words := make([]string, 0)
 
-	for i := len(tr) - 1; i > 0; i-- {
+	for i := len(tr) - 1; i >= 0; i-- {
+		if tr[i] == 0 {
+			continue
+		}
 		tn, err := convertTripletToWord(tr[i], nd)
 		if err != nil {
 			return nil, fmt.Errorf("get triplet name:%e", err)
 		}
 
 		if i == 1 {
-			tn = getThousandsName(tn)
+			fixThousandsSuffix(&tn)
 		}
 
-		pn, err := getPeriodName(i-1, tr[i], pd)
-		if err != nil {
-			return nil, fmt.Errorf("get triplet period:%e", err)
+		words = append(words, tn)
+
+		if i > 0 {
+			pn, err := getPeriodName(i-1, tr[i], pd)
+			if err != nil {
+				return nil, fmt.Errorf("get triplet period:%e", err)
+			}
+
+			words = append(words, pn)
 		}
-
-		words = append(words, tn, pn)
 	}
-
-	tn, err := convertTripletToWord(tr[0], nd)
-	if err != nil {
-		return nil, fmt.Errorf("get triplet name:%e", err)
-	}
-
-	words = append(words, tn)
 	return words, nil
 }
 
 func parseTriplets(n int64) []int {
-	t := []int{}
+	t := make([]int, 0)
 	for n > 0 {
 		t = append(t, int(n%1000))
 		n /= 1000
